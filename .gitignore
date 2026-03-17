@@ -1,0 +1,35 @@
+# Docker
+docker/mysql/data/
+
+# 環境設定
+src/.env
+src/.env.backup
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ログ
+src/storage/logs/*.log
+
+# キャッシュ
+src/bootstrap/cache/*.php
+src/storage/framework/cache/data/*
+!src/storage/framework/cache/data/.gitkeep
+src/storage/framework/sessions/*
+!src/storage/framework/sessions/.gitkeep
+src/storage/framework/views/*
+!src/storage/framework/views/.gitkeep
+
+# Composer
+src/vendor/
+
+# Node.js
+src/node_modules/
+src/public/build/
+src/public/hot/
