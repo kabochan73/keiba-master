@@ -5,6 +5,81 @@
 @section('content')
 <div class="page-title">レース一覧</div>
 
+{{-- 検索フォーム --}}
+<form method="GET" action="{{ route('races.index') }}" style="margin-bottom:16px;">
+<div class="card" style="padding:14px 16px;">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+
+        {{-- キーワード --}}
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">レース名</div>
+            <input
+                type="text"
+                name="keyword"
+                value="{{ request('keyword') }}"
+                placeholder="例：宝塚記念"
+                style="width:160px; padding:6px 10px; border:1px solid #cde4f7; border-radius:4px; font-size:13px;"
+            >
+        </div>
+
+        {{-- 年 --}}
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">年</div>
+            <select name="year" style="padding:6px 10px; border:1px solid #cde4f7; border-radius:4px; font-size:13px; background:#fff;">
+                <option value="">すべて</option>
+                @foreach ($years as $y)
+                    <option value="{{ $y }}" @selected(request('year') == $y)>{{ $y }}年</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- グレード --}}
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">グレード</div>
+            <select name="grade" style="padding:6px 10px; border:1px solid #cde4f7; border-radius:4px; font-size:13px; background:#fff;">
+                <option value="">すべて</option>
+                <option value="G1" @selected(request('grade') === 'G1')>G1</option>
+                <option value="G2" @selected(request('grade') === 'G2')>G2</option>
+                <option value="G3" @selected(request('grade') === 'G3')>G3</option>
+            </select>
+        </div>
+
+        {{-- 開催場 --}}
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">開催場</div>
+            <select name="venue" style="padding:6px 10px; border:1px solid #cde4f7; border-radius:4px; font-size:13px; background:#fff;">
+                <option value="">すべて</option>
+                @foreach ($venues as $v)
+                    <option value="{{ $v }}" @selected(request('venue') === $v)>{{ $v }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button type="submit" style="
+                background:#2a7bbf; color:#fff; border:none;
+                padding:7px 20px; border-radius:4px; font-size:13px;
+                font-weight:600; cursor:pointer;
+            ">検索</button>
+            @if (request()->hasAny(['keyword','year','grade','venue']))
+                <a href="{{ route('races.index') }}" style="
+                    padding:7px 14px; border:1px solid #ccc; border-radius:4px;
+                    font-size:13px; color:#666; text-decoration:none; background:#fff;
+                ">クリア</a>
+            @endif
+        </div>
+    </div>
+</div>
+</form>
+
+{{-- 件数表示 --}}
+<div style="font-size:12px; color:#888; margin-bottom:8px;">
+    {{ $races->total() }} 件
+    @if (request()->hasAny(['keyword','year','grade','venue']))
+        <span style="color:#2a7bbf;">（絞り込み中）</span>
+    @endif
+</div>
+
 <div class="card">
     <table>
         <thead>

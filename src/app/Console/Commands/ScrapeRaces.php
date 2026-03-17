@@ -38,10 +38,11 @@ class ScrapeRaces extends Command
             $raceIds = $listScraper->getRaceIdsByYear((int) $year);
         }
 
-        $total   = count($raceIds);
-        $skipped = 0;
-        $saved   = 0;
-        $failed  = 0;
+        $total        = count($raceIds);
+        $skipped      = 0;
+        $saved        = 0;
+        $failed       = 0;
+        $femaleOnly   = 0;
 
         $this->info("対象レース数: {$total} 件");
 
@@ -58,7 +59,13 @@ class ScrapeRaces extends Command
 
             $data = $detailScraper->scrape($raceId);
 
-            if (!$data) {
+            if ($data === false) {
+                $femaleOnly++;
+                $bar->advance();
+                continue;
+            }
+
+            if ($data === null) {
                 $failed++;
                 $bar->advance();
                 continue;
@@ -75,10 +82,11 @@ class ScrapeRaces extends Command
         $this->table(
             ['項目', '件数'],
             [
-                ['対象レース', $total],
-                ['新規保存',   $saved],
-                ['スキップ（既存）', $skipped],
-                ['失敗',       $failed],
+                ['対象レース',           $total],
+                ['新規保存',             $saved],
+                ['スキップ（既存）',     $skipped],
+                ['牝馬限定スキップ',     $femaleOnly],
+                ['失敗',                 $failed],
             ]
         );
 

@@ -49,6 +49,21 @@ class DebugScrape extends Command
             $this->line('RaceData02 spans: ' . implode(' | ', array_map('strip_tags', $spans[1] ?? [])));
         }
 
+        // race_idリンクを探す
+        $this->info('=== /race/XXXX/ リンク (最初の10件) ===');
+        preg_match_all('#href=["\'][^"\']*?/race/(\d{10,12})/?[^"\']*["\']#', $html, $raceLinks);
+        foreach (array_slice($raceLinks[1] ?? [], 0, 10) as $rid) {
+            $this->line($rid);
+        }
+        $this->line('合計: ' . count($raceLinks[1] ?? []) . ' 件');
+
+        // テーブル一覧
+        $this->info('=== テーブルclass一覧 ===');
+        preg_match_all('/<table[^>]*class=["\']([^"\']+)["\']/', $html, $tables);
+        foreach (array_unique($tables[1] ?? []) as $cls) {
+            $this->line($cls);
+        }
+
         return Command::SUCCESS;
     }
 }

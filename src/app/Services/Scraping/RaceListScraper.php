@@ -2,11 +2,13 @@
 
 namespace App\Services\Scraping;
 
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class RaceListScraper
 {
+    // JRA全場コード
+    private const VENUES = ['01','02','03','04','05','06','07','08','09','10'];
+
     public function __construct(private NetkeibaClient $client) {}
 
     /**
@@ -14,120 +16,205 @@ class RaceListScraper
      */
     public function getRaceIdsByYear(int $year): array
     {
-        $raceDates = $this->getRaceDates($year);
         $raceIds = [];
 
-        foreach ($raceDates as $date) {
-            $ids = $this->getRaceIdsByDate($date);
+        // 月ごとに検索（1ページあたり50件、ページネーション対応）
+        for ($month = 1; $month <= 12; $month++) {
+            // 現在日より未来の月はスキップ
+            $now = now();
+            if ($year > $now->year || ($year === $now->year && $month > $now->month)) {
+                continue;
+            }
+
+            $ids = $this->getRaceIdsByMonth($year, $month);
             $raceIds = array_merge($raceIds, $ids);
-            Log::info("日付 {$date}: " . count($ids) . " 件の対象レース取得");
+            Log::info("{$year}年{$month}月: " . count($ids) . " 件の対象レース取得");
         }
 
         return array_unique($raceIds);
     }
 
     /**
-     * 指定日の対象レースのrace_idリストを返す
+     * 指定日の対象レースのrace_idリストを返す（単日スクレイプ用）
      */
     public function getRaceIdsByDate(string $date): array
     {
-        $url = "https://race.netkeiba.com/top/race_list.html?kaisai_date={$date}";
-        $crawler = $this->client->fetch($url);
+        $year  = (int) substr($date, 0, 4);
+        $month = (int) substr($date, 4, 2);
 
-        if (!$crawler) {
-            return [];
-        }
+        return $this->getRaceIdsByMonth($year, $month, $date);
+    }
 
+    /**
+     * db.netkeiba.com の検索ページから芝・重賞レースのrace_idを取得
+     */
+    private function getRaceIdsByMonth(int $year, int $month, ?string $filterDate = null): array
+    {
         $raceIds = [];
+        $page    = 1;
 
-        try {
-            // 各レースブロックを探索
-            $crawler->filter('.RaceList_DataItem')->each(function ($node) use (&$raceIds) {
-                // 重賞フィルタ（G1/G2/G3アイコンがあるか）
-                $isGrade = $node->filter('.Icon_GradeType1, .Icon_GradeType2, .Icon_GradeType3')->count() > 0;
-                if (!$isGrade) {
-                    return;
-                }
+        do {
+            $url = $this->buildSearchUrl($year, $month, $page);
+            $crawler = $this->client->fetch($url);
 
-                // コース情報テキスト（「芝」を含むか）
-                $courseText = '';
-                try {
-                    $courseText = $node->filter('.RaceData')->text('');
-                } catch (\Exception $e) {}
+            if (!$crawler) {
+                break;
+            }
 
-                $isTurf = str_contains($courseText, '芝');
-                if (!$isTurf) {
-                    return;
-                }
+            $found = 0;
 
-                // レース条件（牝馬混合か）
-                // 牝馬限定は除外、牝馬混合（混合戦）を対象とする
-                $conditionText = '';
-                try {
-                    $conditionText = $node->filter('.RaceData02')->text('');
-                } catch (\Exception $e) {}
+            try {
+                // 結果テーブルの各行を走査
+                $crawler->filter('table.race_table_01 tr, table.nk_tb_common tr')->each(
+                    function ($row) use (&$raceIds, &$found, $filterDate) {
+                        // レースへのリンクを探す（/race/RACEID/ 形式）
+                        // a要素を取得してPHPでhrefをチェック
+                        $href = null;
+                        try {
+                            $row->filter('a')->each(function ($a) use (&$href) {
+                                if ($href !== null) {
+                                    return;
+                                }
+                                $h = $a->attr('href') ?? '';
+                                if (preg_match('#/race/\d{12}/?#', $h)) {
+                                    $href = $h;
+                                }
+                            });
+                        } catch (\Exception) {}
 
-                // 「牡・牝・騸」や「混合」「オープン」等が含まれる = 牝馬混合
-                // 「牝」のみ = 牝馬限定（除外）
-                // netkeibaの条件表記に基づいてフィルタ
-                $isMixed = $this->isMixedRace($conditionText);
-                if (!$isMixed) {
-                    return;
-                }
-
-                // race_idをリンクから取得
-                try {
-                    $link = $node->filter('a[href*="race_id"]')->first();
-                    if ($link->count() > 0) {
-                        $href = $link->attr('href');
-                        preg_match('/race_id=(\d+)/', $href, $matches);
-                        if (!empty($matches[1])) {
-                            $raceIds[] = $matches[1];
+                        if ($href === null) {
+                            return;
                         }
+
+                        if (!preg_match('#/race/(\d{12})/?#', $href, $m)) {
+                            return;
+                        }
+
+                        $raceId = $m[1];
+                        $found++;
+
+                        // 行のテキストを取得（日付・芝チェックに使用）
+                        $rowText = '';
+                        try {
+                            $rowText = $row->text('');
+                        } catch (\Exception) {}
+
+                        // 日付フィルタ（行テキストの先頭 YYYY/MM/DD を使用）
+                        if ($filterDate) {
+                            // 行テキストから "2025/03/16" 形式の日付を抽出
+                            if (!preg_match('/(\d{4})\/(\d{2})\/(\d{2})/', $rowText, $dm)) {
+                                return;
+                            }
+                            $rowDateStr = $dm[1] . $dm[2] . $dm[3]; // "20250316"
+                            if ($rowDateStr !== $filterDate) {
+                                return;
+                            }
+                        }
+
+                        // 芝チェック（db.netkeiba.comの表記: "芝1200" 等）
+                        if (!str_contains($rowText, '芝')) {
+                            return;
+                        }
+
+                        // 牝馬限定レースは除外
+                        if ($this->isFemaleOnly($rowText)) {
+                            return;
+                        }
+
+                        $raceIds[] = $raceId;
                     }
-                } catch (\Exception $e) {}
-            });
-        } catch (\Exception $e) {
-            Log::error("レース一覧パース失敗: {$date}", ['error' => $e->getMessage()]);
-        }
+                );
+            } catch (\Exception $e) {
+                Log::error("レース検索パース失敗: {$year}/{$month} page={$page}", [
+                    'error' => $e->getMessage(),
+                ]);
+                break;
+            }
+
+            // 次のページがなければ終了
+            $hasNext = false;
+            try {
+                $hasNext = $crawler->filter('a.pager_next, .pager a[href*="page=' . ($page + 1) . '"]')->count() > 0;
+            } catch (\Exception $e) {}
+
+            $page++;
+
+            // 安全のため最大20ページ
+            if ($page > 20) {
+                break;
+            }
+
+            // ページが存在しても結果0件なら終了
+            if ($found === 0) {
+                break;
+            }
+
+        } while ($hasNext);
 
         return $raceIds;
     }
 
     /**
-     * 指定年の開催日（土日）リストを返す
+     * db.netkeiba.com の芝重賞検索URL を生成
      */
-    private function getRaceDates(int $year): array
+    private function buildSearchUrl(int $year, int $month, int $page = 1): string
     {
-        $dates = [];
-        $start = Carbon::create($year, 1, 1);
-        $end   = Carbon::create($year, 12, 31);
+        $params = [
+            'pid'        => 'race_list',
+            'word'       => '',
+            'start_year' => $year,
+            'start_mon'  => $month,
+            'end_year'   => $year,
+            'end_mon'    => $month,
+            'kyori_min'  => '',
+            'kyori_max'  => '',
+            'list'       => 50,
+            'page'       => $page,
+            'submit'     => '検索',
+        ];
 
-        $current = $start->copy();
-        while ($current->lte($end)) {
-            // 土曜・日曜のみ
-            if ($current->isSaturday() || $current->isSunday()) {
-                $dates[] = $current->format('Ymd');
-            }
-            $current->addDay();
+        // JRA全場
+        foreach (self::VENUES as $v) {
+            $params["jyo[{$v}]"] = $v;
         }
 
-        return $dates;
+        // 重賞のみ (G1=1, G2=2, G3=3)
+        $params['grade[1]'] = 1;
+        $params['grade[2]'] = 2;
+        $params['grade[3]'] = 3;
+
+        // 芝のみ
+        $params['type[T]'] = 'T';
+
+        // 配列パラメータを手動ビルド（http_build_query は [] エンコードが異なる）
+        $base = 'https://db.netkeiba.com/?';
+        $parts = [];
+
+        foreach ($params as $key => $value) {
+            // jyo[01]=01 → jyo[]=01 形式に変換
+            if (preg_match('/^(jyo|grade|type)\[/', $key)) {
+                $arrayKey = preg_replace('/\[.*\]$/', '[]', $key);
+                $parts[] = urlencode($arrayKey) . '=' . urlencode((string) $value);
+            } else {
+                $parts[] = urlencode($key) . '=' . urlencode((string) $value);
+            }
+        }
+
+        return $base . implode('&', $parts);
     }
 
     /**
-     * 牝馬混合レースかどうかを判定
-     * 「牝」のみの限定戦は除外、混合戦は対象
+     * 牝馬限定レースかどうかを判定
      */
-    private function isMixedRace(string $conditionText): bool
+    private function isFemaleOnly(string $text): bool
     {
-        // 牝馬限定の表記（「牝」のみで「牡」や「騸」を含まない）
-        if (preg_match('/牝\s*\(/', $conditionText) && !str_contains($conditionText, '牡')) {
-            return false;
+        // 「牝」を含み「牡」「騸」を含まない = 牝馬限定
+        if (mb_strpos($text, '牝') !== false
+            && mb_strpos($text, '牡') === false
+            && mb_strpos($text, '騸') === false) {
+            return true;
         }
 
-        // 混合（牡・牝・騸 が混在）を対象
-        // 条件テキストに何も限定がない、または混合表記がある
-        return true;
+        return false;
     }
 }

@@ -10,8 +10,9 @@ class RaceDetailScraper
 
     /**
      * レース詳細（結果・出走馬・ラップ）を取得して返す
+     * 成功: array, 牝馬限定スキップ: false, エラー: null
      */
-    public function scrape(string $raceId): ?array
+    public function scrape(string $raceId): array|false|null
     {
         $resultUrl = "https://race.netkeiba.com/race/result.html?race_id={$raceId}";
         $lapUrl    = "https://db.netkeiba.com/race/{$raceId}/";
@@ -22,6 +23,12 @@ class RaceDetailScraper
             return null;
         }
 
+        // 牝馬限定レースはスキップ（牝馬混合のみ対象）
+        if ($this->isFemaleOnly($resultCrawler)) {
+            Log::info("牝馬限定レースをスキップ: {$raceId}");
+            return false;
+        }
+
         $lapCrawler = $this->client->fetch($lapUrl);
 
         return [
@@ -29,6 +36,30 @@ class RaceDetailScraper
             'entries' => $this->parseEntries($resultCrawler),
             'laps'    => $lapCrawler ? $this->parseLapTimes($lapCrawler) : [],
         ];
+    }
+
+    /**
+     * 牝馬限定レースかどうかを判定
+     * .RaceData02 に "(牡・牝)" があれば混合、"牝馬" や "(牝)" のみなら牝馬限定
+     */
+    private function isFemaleOnly($crawler): bool
+    {
+        try {
+            $condText = $crawler->filter('.RaceData02')->text('');
+
+            // "(牡・牝)" または "牡牝" があれば混合レース → 対象
+            if (str_contains($condText, '牡・牝') || str_contains($condText, '牡牝')) {
+                return false;
+            }
+
+            // "牝馬" や "牝" を含み "牡" を含まなければ牝馬限定 → 除外
+            if ((str_contains($condText, '牝馬') || str_contains($condText, '牝'))
+                && !str_contains($condText, '牡')) {
+                return true;
+            }
+        } catch (\Exception) {}
+
+        return false;
     }
 
     /**
