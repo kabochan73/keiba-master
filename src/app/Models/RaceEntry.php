@@ -2,33 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class RaceEntry extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'race_id',
-        'horse_id',
-        'gate_number',
-        'horse_number',
-        'jockey',
-        'weight',
-        'horse_weight',
-        'horse_weight_diff',
-        'odds',
-        'popularity',
-        'finish_position',
-        'finish_time',
-        'margin',
+        'race_id', 'horse_id', 'jockey_id', 'trainer_id', 'breeder_id',
+        'post_position', 'horse_number', 'finish_position', 'is_disqualified',
+        'finish_time', 'time_diff', 'last_3f',
+        'corner_1', 'corner_2', 'corner_3', 'corner_4',
+        'weight', 'weight_change', 'age', 'burden_weight',
+        'odds', 'popularity',
     ];
 
     protected $casts = [
-        'odds' => 'decimal:1',
-        'weight' => 'decimal:1',
+        'finish_time'   => 'float',
+        'time_diff'     => 'float',
+        'last_3f'       => 'float',
+        'burden_weight' => 'float',
+        'odds'          => 'float',
     ];
 
     public function race(): BelongsTo
@@ -39,5 +33,25 @@ class RaceEntry extends Model
     public function horse(): BelongsTo
     {
         return $this->belongsTo(Horse::class);
+    }
+
+    public function jockey(): BelongsTo
+    {
+        return $this->belongsTo(Jockey::class);
+    }
+
+    public function trainer(): BelongsTo
+    {
+        return $this->belongsTo(Trainer::class);
+    }
+
+    public function correction(): HasOne
+    {
+        return $this->hasOne(RaceCorrection::class);
+    }
+
+    public function score(): HasOne
+    {
+        return $this->hasOne(HorseScore::class);
     }
 }

@@ -2,37 +2,85 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Race;
+use App\Services\Scraping\RaceDetailScraper;
+use App\Services\Scraping\RaceListScraper;
+use App\Services\Scraping\RaceSaveService;
 use Illuminate\Console\Command;
 
 class ScrapeRaces extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'scrape:races {--date= : 取得する日付 (YYYYMMDD形式)}';
+    protected $signature = 'scrape:races
+        {--year= : 取得する年（例: 2024）}
+        {--date= : 取得する日付（例: 20240407）}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = '競馬レース情報をスクレイピングして取得します';
+    protected $description = '指定年または日付の芝・牝馬混合重賞レースをスクレイピング';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle(): int
-    {
-        $date = $this->option('date') ?? now()->format('Ymd');
+    public function handle(
+        RaceListScraper $listScraper,
+        RaceDetailScraper $detailScraper,
+        RaceSaveService $saveService
+    ): int {
+        $year = $this->option('year');
+        $date = $this->option('date');
 
-        $this->info("レース情報のスクレイピングを開始します: {$date}");
+        if (!$year && !$date) {
+            $this->error('--year または --date を指定してください');
+            return Command::FAILURE;
+        }
 
-        // TODO: スクレイピング処理を実装する
-        // 例: netkeiba.comなどからレース情報を取得
+        // race_idリストを取得
+        if ($date) {
+            $this->info("日付 {$date} のレースを取得します...");
+            $raceIds = $listScraper->getRaceIdsByDate($date);
+        } else {
+            $this->info("{$year}年のレースを取得します...");
+            $raceIds = $listScraper->getRaceIdsByYear((int) $year);
+        }
 
-        $this->info('スクレイピングが完了しました。');
+        $total   = count($raceIds);
+        $skipped = 0;
+        $saved   = 0;
+        $failed  = 0;
+
+        $this->info("対象レース数: {$total} 件");
+
+        $bar = $this->output->createProgressBar($total);
+        $bar->start();
+
+        foreach ($raceIds as $raceId) {
+            // 既存チェック（スキップ）
+            if (Race::where('race_id', $raceId)->exists()) {
+                $skipped++;
+                $bar->advance();
+                continue;
+            }
+
+            $data = $detailScraper->scrape($raceId);
+
+            if (!$data) {
+                $failed++;
+                $bar->advance();
+                continue;
+            }
+
+            $saveService->save($data);
+            $saved++;
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine(2);
+
+        $this->table(
+            ['項目', '件数'],
+            [
+                ['対象レース', $total],
+                ['新規保存',   $saved],
+                ['スキップ（既存）', $skipped],
+                ['失敗',       $failed],
+            ]
+        );
 
         return Command::SUCCESS;
     }
