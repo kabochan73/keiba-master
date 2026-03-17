@@ -44,6 +44,30 @@ class RaceController extends Controller
     {
         $race->load(['lapTimes', 'entries.horse', 'entries.jockey', 'entries.trainer']);
 
-        return view('races.show', compact('race'));
+        // 同名レースの過去版（新しい順、自分自身を除く）
+        $pastEditions = Race::where('race_name', $race->race_name)
+            ->where('id', '!=', $race->id)
+            ->with(['lapTimes', 'entries.horse'])
+            ->orderByDesc('race_date')
+            ->get();
+
+        // 各レースの上がり平均を計算するヘルパー
+        $calcAvgLast3f = fn($r) => $r->entries
+            ->whereNotNull('last_3f')
+            ->where('last_3f', '>', 0)
+            ->avg('last_3f');
+
+        // 過去の勝ちタイム平均（タイムインデックス算出用）
+        $pastWinTimes = $pastEditions->map(
+            fn($r) => $r->entries->where('finish_position', 1)->first()?->finish_time
+        )->filter();
+
+        $avgWinTime    = $pastWinTimes->count() > 0 ? $pastWinTimes->avg() : null;
+        $currentWinner = $race->entries->where('finish_position', 1)->first();
+        $timeIndex     = ($avgWinTime && $currentWinner?->finish_time)
+            ? round($avgWinTime - $currentWinner->finish_time, 2)
+            : null;
+
+        return view('races.show', compact('race', 'pastEditions', 'calcAvgLast3f', 'avgWinTime', 'timeIndex'));
     }
 }

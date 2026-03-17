@@ -19,7 +19,6 @@ class RaceEntry extends Model
 
     protected $casts = [
         'finish_time'   => 'float',
-        'time_diff'     => 'float',
         'last_3f'       => 'float',
         'burden_weight' => 'float',
         'odds'          => 'float',

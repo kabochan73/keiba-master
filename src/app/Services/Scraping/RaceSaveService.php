@@ -146,7 +146,7 @@ class RaceSaveService
                 'horse_number'    => $data['horse_number'],
                 'finish_position' => $data['finish_position'],
                 'finish_time'     => $data['finish_time'],
-                'time_diff'       => is_numeric($data['time_diff'] ?? '') ? (float) $data['time_diff'] : null,
+                'time_diff'       => ($data['time_diff'] ?? '') !== '' ? $data['time_diff'] : null,
                 'last_3f'         => $data['last_3f'] ?: null,
                 'corner_1'        => $data['corner_1'],
                 'corner_2'        => $data['corner_2'],

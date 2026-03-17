@@ -24,7 +24,7 @@ return new class extends Migration
 
             // タイム
             $table->decimal('finish_time', 6, 1)->nullable()->comment('タイム（秒）');
-            $table->decimal('time_diff', 5, 1)->nullable()->comment('着差（秒）');
+            $table->string('time_diff', 20)->nullable()->comment('着差（クビ・ハナ・1/2 等）');
             $table->decimal('last_3f', 4, 1)->nullable()->comment('上がり3F');
 
             // コーナー通過順位

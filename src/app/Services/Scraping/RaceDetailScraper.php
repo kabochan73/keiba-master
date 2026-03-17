@@ -217,14 +217,19 @@ class RaceDetailScraper
                     $posText = trim($cells->eq(0)->text(''));
                     $entry['finish_position'] = is_numeric($posText) ? (int) $posText : null;
 
-                    // 枠番
-                    $entry['post_position'] = (int) trim($cells->eq(1)->text(''));
+                    // 枠番セルが rowspan で省略されているか判定
+                    // 通常15セル、枠番省略時は14セル → 以降の列を1つずらす
+                    $hasGate = $cells->count() >= 15;
+                    $o = $hasGate ? 0 : -1; // オフセット
+
+                    // 枠番（省略時は null）
+                    $entry['post_position'] = $hasGate ? (int) trim($cells->eq(1)->text('')) : null;
 
                     // 馬番
-                    $entry['horse_number'] = (int) trim($cells->eq(2)->text(''));
+                    $entry['horse_number'] = (int) trim($cells->eq(2 + $o)->text(''));
 
                     // 馬名・馬ID
-                    $horseLink = $cells->eq(3)->filter('a')->first();
+                    $horseLink = $cells->eq(3 + $o)->filter('a')->first();
                     if ($horseLink->count() > 0) {
                         $entry['horse_name'] = $this->clean($horseLink->text(''));
                         preg_match('/horse\/(\w+)/', $horseLink->attr('href') ?? '', $m);
@@ -232,17 +237,17 @@ class RaceDetailScraper
                     }
 
                     // 性齢（例: 牡4）
-                    $sexAge = $this->clean($cells->eq(4)->text(''));
+                    $sexAge = $this->clean($cells->eq(4 + $o)->text(''));
                     if (preg_match('/([牡牝騸セ])(\d+)/u', $sexAge, $m)) {
                         $entry['sex'] = $m[1];
                         $entry['age'] = (int) $m[2];
                     }
 
                     // 斤量
-                    $entry['burden_weight'] = (float) trim($cells->eq(5)->text(''));
+                    $entry['burden_weight'] = (float) trim($cells->eq(5 + $o)->text(''));
 
                     // 騎手名・騎手ID
-                    $jockeyLink = $cells->eq(6)->filter('a')->first();
+                    $jockeyLink = $cells->eq(6 + $o)->filter('a')->first();
                     if ($jockeyLink->count() > 0) {
                         $entry['jockey_name'] = $this->clean($jockeyLink->text(''));
                         preg_match('/jockey\/result\/recent\/(\w+)/', $jockeyLink->attr('href') ?? '', $m);
@@ -250,23 +255,23 @@ class RaceDetailScraper
                     }
 
                     // タイム（例: 1:58.2 → 秒換算）
-                    $timeText = trim($cells->eq(7)->text(''));
+                    $timeText = trim($cells->eq(7 + $o)->text(''));
                     $entry['finish_time'] = $this->parseTimeToSeconds($timeText);
 
                     // 着差
-                    $entry['time_diff'] = trim($cells->eq(8)->text(''));
+                    $entry['time_diff'] = $this->clean($cells->eq(8 + $o)->text(''));
 
                     // 人気
-                    $entry['popularity'] = (int) trim($cells->eq(9)->text(''));
+                    $entry['popularity'] = (int) trim($cells->eq(9 + $o)->text(''));
 
                     // オッズ
-                    $entry['odds'] = (float) trim($cells->eq(10)->text(''));
+                    $entry['odds'] = (float) trim($cells->eq(10 + $o)->text(''));
 
                     // 上がり3F
-                    $entry['last_3f'] = (float) trim($cells->eq(11)->text(''));
+                    $entry['last_3f'] = (float) trim($cells->eq(11 + $o)->text(''));
 
                     // コーナー通過順（例: "2-2-3-4"）
-                    $cornerText = trim($cells->eq(12)->text(''));
+                    $cornerText = trim($cells->eq(12 + $o)->text(''));
                     $corners = explode('-', $cornerText);
                     $entry['corner_1'] = isset($corners[0]) && is_numeric($corners[0]) ? (int) $corners[0] : null;
                     $entry['corner_2'] = isset($corners[1]) && is_numeric($corners[1]) ? (int) $corners[1] : null;
@@ -274,7 +279,7 @@ class RaceDetailScraper
                     $entry['corner_4'] = isset($corners[3]) && is_numeric($corners[3]) ? (int) $corners[3] : null;
 
                     // 調教師名・調教師ID
-                    $trainerLink = $cells->eq(13)->filter('a')->first();
+                    $trainerLink = $cells->eq(13 + $o)->filter('a')->first();
                     if ($trainerLink->count() > 0) {
                         $entry['trainer_name'] = $this->clean($trainerLink->text(''));
                         preg_match('/trainer\/result\/recent\/(\w+)/', $trainerLink->attr('href') ?? '', $m);
@@ -282,7 +287,7 @@ class RaceDetailScraper
                     }
 
                     // 馬体重（例: "480(+2)"）
-                    $weightText = trim($cells->eq(14)->text(''));
+                    $weightText = trim($cells->eq(14 + $o)->text(''));
                     if (preg_match('/(\d+)\(([+-]?\d+)\)/', $weightText, $m)) {
                         $entry['weight']        = (int) $m[1];
                         $entry['weight_change'] = (int) $m[2];
