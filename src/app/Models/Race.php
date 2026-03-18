@@ -12,7 +12,7 @@ class Race extends Model
         'course_type', 'distance', 'turn_direction', 'weather', 'track_condition',
         'grade', 'field_size',
         'pace_3f_front', 'pace_5f_front', 'pace_3f_back', 'pace_5f_back', 'final_time',
-        'pace_index_3f', 'pace_index_5f', 'pace_balance', 'pace_category',
+        'pace_index_3f', 'pace_index_5f', 'pace_balance', 'pace_balance_5f', 'pace_category',
         'race_url',
     ];
 
@@ -23,9 +23,10 @@ class Race extends Model
         'pace_3f_back'  => 'float',
         'pace_5f_back'  => 'float',
         'final_time'    => 'float',
-        'pace_index_3f' => 'float',
-        'pace_index_5f' => 'float',
-        'pace_balance'  => 'float',
+        'pace_index_3f'  => 'float',
+        'pace_index_5f'  => 'float',
+        'pace_balance'   => 'float',
+        'pace_balance_5f' => 'float',
     ];
 
     public function lapTimes(): HasMany

@@ -26,6 +26,12 @@ class RaceCorrectionController extends Controller
             $correctedRanks[$entry->id] = $rank++;
         }
 
+        // 補正データがあれば補正順位順、なければ着順で表示
+        $hasCorrections = $entries->some(fn($e) => $e->correction?->corrected_time !== null);
+        if ($hasCorrections) {
+            $entries = $entries->sortBy(fn($e) => $correctedRanks[$e->id] ?? 999);
+        }
+
         return view('races.corrections', compact('race', 'entries', 'correctedRanks'));
     }
 

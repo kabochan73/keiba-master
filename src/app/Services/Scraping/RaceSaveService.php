@@ -86,15 +86,19 @@ class RaceSaveService
         // 後半5F
         $pace5fBack = $totalLaps >= 5 ? array_sum(array_slice($lapTimes, -5, 5)) : null;
 
-        // 前後バランス
-        $paceBalance = round($pace3fFront - $pace3fBack, 2);
+        // 前後バランス（3F・5F）
+        $paceBalance   = round($pace3fFront - $pace3fBack, 2);
+        $paceBalance5f = ($pace5fFront !== null && $pace5fBack !== null)
+            ? round($pace5fFront - $pace5fBack, 2)
+            : null;
 
         $race->update([
-            'pace_3f_front' => round($pace3fFront, 1),
-            'pace_5f_front' => $pace5fFront ? round($pace5fFront, 1) : null,
-            'pace_3f_back'  => round($pace3fBack, 1),
-            'pace_5f_back'  => $pace5fBack ? round($pace5fBack, 1) : null,
-            'pace_balance'  => $paceBalance,
+            'pace_3f_front'   => round($pace3fFront, 1),
+            'pace_5f_front'   => $pace5fFront ? round($pace5fFront, 1) : null,
+            'pace_3f_back'    => round($pace3fBack, 1),
+            'pace_5f_back'    => $pace5fBack ? round($pace5fBack, 1) : null,
+            'pace_balance'    => $paceBalance,
+            'pace_balance_5f' => $paceBalance5f,
         ]);
     }
 

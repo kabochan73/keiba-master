@@ -58,7 +58,7 @@
                 <td style="border:none; padding:4px 0;">{{ $race->pace_5f_back ?? '-' }}</td>
             </tr>
             <tr>
-                <td style="color:#888; border:none; padding:4px 0;">前後差</td>
+                <td style="color:#888; border:none; padding:4px 0;">前後差(3F)</td>
                 <td colspan="3" style="border:none; padding:4px 0;">
                     @if ($race->pace_balance !== null)
                         @php
@@ -68,6 +68,22 @@
                         @endphp
                         {{ number_format($b, 2) }}
                         <span class="badge pace-{{ $cls }}" style="margin-left:6px;">{{ $label }}</span>
+                    @else
+                        -
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td style="color:#888; border:none; padding:4px 0;">前後差(5F)</td>
+                <td colspan="3" style="border:none; padding:4px 0;">
+                    @if ($race->pace_balance_5f !== null)
+                        @php
+                            $b5 = $race->pace_balance_5f;
+                            $label5 = $b5 >= 2.0 ? 'スロー' : ($b5 <= -2.0 ? 'ハイ' : 'ミドル');
+                            $cls5   = $b5 >= 2.0 ? 'slow' : ($b5 <= -2.0 ? 'high' : 'middle');
+                        @endphp
+                        {{ number_format($b5, 2) }}
+                        <span class="badge pace-{{ $cls5 }}" style="margin-left:6px;">{{ $label5 }}</span>
                     @else
                         -
                     @endif
@@ -283,7 +299,10 @@
                     <th>上がり平均</th>
                     <th>前半3F</th>
                     <th>後半3F</th>
-                    <th>前後差</th>
+                    <th>前後差(3F)</th>
+                    <th>前半5F</th>
+                    <th>後半5F</th>
+                    <th>前後差(5F)</th>
                     <th>ペース</th>
                 </tr>
             </thead>
@@ -312,6 +331,14 @@
                     <td style="font-family:monospace;">
                         @if ($race->pace_balance !== null)
                             {{ $race->pace_balance >= 0 ? '+' : '' }}{{ number_format($race->pace_balance, 2) }}
+                        @else -
+                        @endif
+                    </td>
+                    <td>{{ $race->pace_5f_front ?? '-' }}</td>
+                    <td>{{ $race->pace_5f_back ?? '-' }}</td>
+                    <td style="font-family:monospace;">
+                        @if ($race->pace_balance_5f !== null)
+                            {{ $race->pace_balance_5f >= 0 ? '+' : '' }}{{ number_format($race->pace_balance_5f, 2) }}
                         @else -
                         @endif
                     </td>
@@ -355,6 +382,14 @@
                     <td style="font-family:monospace;">
                         @if ($past->pace_balance !== null)
                             {{ $past->pace_balance >= 0 ? '+' : '' }}{{ number_format($past->pace_balance, 2) }}
+                        @else -
+                        @endif
+                    </td>
+                    <td>{{ $past->pace_5f_front ?? '-' }}</td>
+                    <td>{{ $past->pace_5f_back ?? '-' }}</td>
+                    <td style="font-family:monospace;">
+                        @if ($past->pace_balance_5f !== null)
+                            {{ $past->pace_balance_5f >= 0 ? '+' : '' }}{{ number_format($past->pace_balance_5f, 2) }}
                         @else -
                         @endif
                     </td>

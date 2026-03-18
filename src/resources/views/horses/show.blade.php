@@ -226,6 +226,13 @@
                     @endif
                 </td>
             </tr>
+            @if ($c?->note)
+            <tr>
+                <td colspan="13" style="font-size:12px; color:#666; padding:2px 12px 8px; border-top:none;">
+                    📝 {{ $c->note }}
+                </td>
+            </tr>
+            @endif
             @endforeach
         </tbody>
     </table>
