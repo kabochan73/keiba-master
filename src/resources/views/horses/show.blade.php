@@ -157,6 +157,7 @@
                 <th>開催</th>
                 <th>距離</th>
                 <th>馬場</th>
+                <th>頭数</th>
                 <th>着順</th>
                 <th>人気</th>
                 <th>タイム</th>
@@ -194,6 +195,7 @@
                 <td>{{ $entry->race->venue }}</td>
                 <td>{{ $entry->race->distance }}m</td>
                 <td>{{ $entry->race->track_condition ?? '-' }}</td>
+                <td>{{ $entry->race->field_size ?? '-' }}</td>
                 <td style="font-weight:700; color:{{ $posColor }};">
                     {{ $pos ?? '---' }}
                 </td>
@@ -228,7 +230,7 @@
             </tr>
             @if ($c?->note)
             <tr>
-                <td colspan="13" style="font-size:12px; color:#666; padding:2px 12px 8px; border-top:none;">
+                <td colspan="14" style="font-size:12px; color:#666; padding:2px 12px 8px; border-top:none;">
                     📝 {{ $c->note }}
                 </td>
             </tr>

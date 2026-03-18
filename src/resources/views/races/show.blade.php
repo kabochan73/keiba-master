@@ -110,6 +110,23 @@
 </div>
 @endif
 
+{{-- レースコメント --}}
+<div class="card" style="margin-bottom:20px; padding:16px;">
+    <div style="font-size:13px; font-weight:600; color:#2a7bbf; margin-bottom:10px;">レースメモ</div>
+    @if (session('comment_saved'))
+        <div style="font-size:12px; color:#1a7a30; margin-bottom:8px;">保存しました</div>
+    @endif
+    <form method="POST" action="{{ route('races.comment.update', $race) }}" style="display:flex; gap:8px; align-items:center;">
+        @csrf
+        @method('PATCH')
+        <input type="text" name="comment" value="{{ old('comment', $race->comment) }}"
+            placeholder="このレースについてのメモを入力..."
+            style="flex:1; padding:7px 10px; border:1px solid #ddd; border-radius:4px; font-size:13px; outline:none;"
+            maxlength="500">
+        <button type="submit" style="background:#2a7bbf; color:#fff; border:none; padding:7px 16px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:600; white-space:nowrap;">保存</button>
+    </form>
+</div>
+
 {{-- 出走馬結果 --}}
 @php
     // 人気上位3頭のID

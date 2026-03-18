@@ -70,4 +70,11 @@ class RaceController extends Controller
 
         return view('races.show', compact('race', 'pastEditions', 'calcAvgLast3f', 'avgWinTime', 'timeIndex'));
     }
+
+    public function updateComment(Request $request, Race $race)
+    {
+        $race->update(['comment' => $request->input('comment')]);
+
+        return back()->with('comment_saved', true);
+    }
 }

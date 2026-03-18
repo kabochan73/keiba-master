@@ -13,7 +13,7 @@ class Race extends Model
         'grade', 'field_size',
         'pace_3f_front', 'pace_5f_front', 'pace_3f_back', 'pace_5f_back', 'final_time',
         'pace_index_3f', 'pace_index_5f', 'pace_balance', 'pace_balance_5f', 'pace_category',
-        'race_url',
+        'race_url', 'comment',
     ];
 
     protected $casts = [
