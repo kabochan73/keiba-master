@@ -31,6 +31,13 @@ class RaceController extends Controller
             $query->where('race_name', 'like', "%{$keyword}%");
         }
 
+        // 馬名キーワード
+        if ($horse = $request->input('horse')) {
+            $query->whereHas('entries.horse', function ($q) use ($horse) {
+                $q->where('name', 'like', "%{$horse}%");
+            });
+        }
+
         $races = $query->orderByDesc('race_date')->orderByDesc('id')->paginate(20)->withQueryString();
 
         // フィルタ用選択肢

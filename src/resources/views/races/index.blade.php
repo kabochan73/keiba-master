@@ -22,6 +22,18 @@
             >
         </div>
 
+        {{-- 馬名 --}}
+        <div>
+            <div style="font-size:11px; color:#888; margin-bottom:4px;">馬名</div>
+            <input
+                type="text"
+                name="horse"
+                value="{{ request('horse') }}"
+                placeholder="例：イクイノックス"
+                style="width:160px; padding:6px 10px; border:1px solid #cde4f7; border-radius:4px; font-size:13px;"
+            >
+        </div>
+
         {{-- 年 --}}
         <div>
             <div style="font-size:11px; color:#888; margin-bottom:4px;">年</div>
@@ -61,7 +73,7 @@
                 padding:7px 20px; border-radius:4px; font-size:13px;
                 font-weight:600; cursor:pointer;
             ">検索</button>
-            @if (request()->hasAny(['keyword','year','grade','venue']))
+            @if (request()->hasAny(['keyword','horse','year','grade','venue']))
                 <a href="{{ route('races.index') }}" style="
                     padding:7px 14px; border:1px solid #ccc; border-radius:4px;
                     font-size:13px; color:#666; text-decoration:none; background:#fff;
@@ -75,7 +87,7 @@
 {{-- 件数表示 --}}
 <div style="font-size:12px; color:#888; margin-bottom:8px;">
     {{ $races->total() }} 件
-    @if (request()->hasAny(['keyword','year','grade','venue']))
+    @if (request()->hasAny(['keyword','horse','year','grade','venue']))
         <span style="color:#2a7bbf;">（絞り込み中）</span>
     @endif
 </div>
